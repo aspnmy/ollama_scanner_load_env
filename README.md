@@ -1,0 +1,2 @@
+# ollama_scanner_load_env
+主要用于对项目全局变量env注入到系统环境变量的一个管理组件，.env文件位于项目根目录
