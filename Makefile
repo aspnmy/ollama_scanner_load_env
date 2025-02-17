@@ -1,25 +1,36 @@
-CC=gcc
-CFLAGS=-Wall -Wextra
-TARGET=aspnmy_env
-SOURCES=Src/aspnmy_env.c
-HEADERS=Src/aspnmy_env.h
+CC = gcc
+CFLAGS = -Wall -O2
+LDFLAGS = -lcrypto
 
-all: $(TARGET)
+TARGET = aspnmy_envloader
+SRC = Src/aspnmy_envloader.c
+HEADERS = Src/aspnmy_envloader.h
 
-$(TARGET): $(SOURCES) $(HEADERS)
-	$(CC) $(CFLAGS) -o $@ $(SOURCES)
+build_DIR = bin
+
+package_DIR = build/packages
+
+INSTALL_DIR = /usr/local/bin
+
+
+all:
+	mkdir -p $(build_DIR)
+	$(CC) $(CFLAGS) -o $(build_DIR)/$(TARGET) $(SRC) $(LDFLAGS)
+	chmod +x $(build_DIR)/$(TARGET)
 
 install:
-	mkdir -p bin
-	cp $(TARGET) ./bin/
-	chmod +x ./bin/$(TARGET)
-	rm -rf $(TARGET)
+	cp $(build_DIR)/$(TARGET) $(INSTALL_DIR)
+
+uninstall:
+	rm -f $(INSTALL_DIR)/$(TARGET)
+
+
+clean:
+	rm -f $(build_DIR)/$(TARGET)
+	rm -f $(package_DIR)/*
+	
 
 package:
 	bash package.sh 
-	
 
-clean:
-	rm -f $(TARGET)
-
-.PHONY: all install clean package
+.PHONY: all install uninstall package

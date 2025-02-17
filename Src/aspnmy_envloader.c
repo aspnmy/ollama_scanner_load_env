@@ -1,4 +1,4 @@
-#include "aspnmy_env.h"
+#include "aspnmy_envloader.h"
 #include <ctype.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -178,48 +178,87 @@ void print_vars(const EnvVars* vars, int color) {
     }
 }
 
-// 修改 main 函数的调试输出
+// 添加帮助函数
+void print_help() {
+    printf("用法: aspnmy_env {ver|install|uninstall|reload|print} [--no-color]\n");
+    printf("  install      - 安装环境变量到 .bashrc\n");
+    printf("  uninstall    - 从 .bashrc 中移除环境变量\n");
+    printf("  reload       - 重新加载环境变量\n");
+    printf("  print        - 显示当前环境变量\n");
+    printf("  ver          - 查询版本号\n");
+    printf("选项:\n");
+    printf("  --no-color   - 禁用彩色输出\n");
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        printf("用法: %s {install|uninstall|reload|print} [--no-color]\n", argv[0]);
+        print_help();
         return 1;
     }
 
-    EnvVars vars;
+    const char* command = argv[1];
     int use_color = 1;
+    EnvVars vars;
     
+    // 检查是否有 --no-color 选项
     if (argc > 2 && strcmp(argv[2], "--no-color") == 0) {
         use_color = 0;
     }
 
-    if (strcmp(argv[1], "print") == 0) {
+    // 版本信息命令
+    if (strcmp(command, "ver") == 0) {
+        printf("OS:linux_amd64 Version:1.0.1 Author:aspnmy/support@e2bank.cn\n");
+        return 0;
+    }
+    
+    // 打印命令
+    if (strcmp(command, "print") == 0) {
         char* env_path = find_env_file();
-        if (env_path == NULL) {
+        if (!env_path) {
             fprintf(stderr, "错误: 未找到 .env 文件\n");
             return 1;
         }
         printf("使用配置文件: %s\n", env_path);
         if (load_env_file(env_path, &vars) == 0) {
             print_vars(&vars, use_color);
+            return 0;
         }
-    } else if (strcmp(argv[1], "install") == 0) {
-        if (load_env_file(".env", &vars) == 0) {
-            save_to_bashrc(&vars);
-            printf("环境变量已加载\n");
-        }
-    } else if (strcmp(argv[1], "reload") == 0) {
-        system("sed -i '/^# BEGIN ASPNMY CONFIG/,/^# END ASPNMY CONFIG/d' ~/.bashrc");
-        if (load_env_file(".env", &vars) == 0) {
-            save_to_bashrc(&vars);
-            printf("环境变量已重新加载\n");
-        }
-    } else if (strcmp(argv[1], "uninstall") == 0) {
-        system("sed -i '/^# BEGIN ASPNMY CONFIG/,/^# END ASPNMY CONFIG/d' ~/.bashrc");
-        printf("环境变量配置已移除\n");
-    } else {
-        printf("未知命令: %s\n", argv[1]);
         return 1;
     }
 
-    return 0;
+    // 安装命令
+    if (strcmp(command, "install") == 0) {
+        if (load_env_file(".env", &vars) == 0) {
+            if (save_to_bashrc(&vars) == 0) {
+                printf("环境变量已安装\n");
+                return 0;
+            }
+        }
+        return 1;
+    }
+
+    // 重新加载命令
+    if (strcmp(command, "reload") == 0) {
+        system("sed -i '/^# BEGIN ASPNMY CONFIG/,/^# END ASPNMY CONFIG/d' ~/.bashrc");
+        if (load_env_file(".env", &vars) == 0) {
+            if (save_to_bashrc(&vars) == 0) {
+                printf("环境变量已重新加载\n");
+                return 0;
+            }
+        }
+        return 1;
+    }
+
+    // 卸载命令
+    if (strcmp(command, "uninstall") == 0) {
+        if (system("sed -i '/^# BEGIN ASPNMY CONFIG/,/^# END ASPNMY CONFIG/d' ~/.bashrc") == 0) {
+            printf("环境变量配置已移除\n");
+            return 0;
+        }
+        return 1;
+    }
+
+    // 未知命令
+    print_help();
+    return 1;
 }
