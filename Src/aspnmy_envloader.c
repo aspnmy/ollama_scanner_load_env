@@ -58,16 +58,34 @@ int load_env_file(const char* path, EnvVars* vars) {
     char line[MAX_LINE_LENGTH];
 
     while (fgets(line, sizeof(line), fp)) {
-        // 跳过注释和空行
-        if (line[0] == '#' || line[0] == '\n') continue;
+        // 只跳过注释行
+        if (line[0] == '#') continue;
+        
+        // 去除行尾的换行符
+        size_t len = strlen(line);
+        if (len > 0 && line[len-1] == '\n') {
+            line[len-1] = '\0';
+        }
 
         char* key = strtok(line, "=");
-        char* value = strtok(NULL, "\n");
+        char* value = strtok(NULL, "\0");  // 使用\0作为分隔符保留所有剩余内容
         
-        if (key && value) {
-            // 清理空格
+        if (key) {  // 只要有key就处理，允许value为NULL
+            // 清理key前后的空格
             while (isspace(*key)) key++;
-            while (isspace(*value)) value++;
+            char* end = key + strlen(key) - 1;
+            while (end > key && isspace(*end)) end--;
+            *(end + 1) = '\0';
+            
+            // 如果value存在，清理前后的空格
+            if (value) {
+                while (isspace(*value)) value++;
+                end = value + strlen(value) - 1;
+                while (end > value && isspace(*end)) end--;
+                *(end + 1) = '\0';
+            } else {
+                value = "";  // 如果value为NULL，设置为空字符串
+            }
             
             strncpy(vars->vars[vars->count].key, key, MAX_KEY_LENGTH - 1);
             strncpy(vars->vars[vars->count].value, value, MAX_VALUE_LENGTH - 1);
